@@ -7,6 +7,8 @@ public class IntersectionFinder {
     private TreeSet<SpacialObject> BST;
     private ArrayList <Point> intersections;
     private ArrayList <LineSegment>lines;
+    private ArrayList <LineSegment> verticals;
+    private LineSegment end;
     private double xMax;
     private double yMax;
 
@@ -15,6 +17,7 @@ public class IntersectionFinder {
         BST = new TreeSet<>();
         intersections = new ArrayList<>();
         lines = new ArrayList<>();
+        verticals = new ArrayList<>();
 
         Event e;
         LineSegment s;
@@ -95,12 +98,7 @@ public class IntersectionFinder {
             s2 = (LineSegment) BST.higher(e.p);
 
             if(s1!=null&&s2!=null){
-                /*if((Math.abs(s1.slope)<.0000001))
-                    findHorizontalIntersections(s1,e.p);
-                else if((Math.abs(s2.slope)<.0000001))
-                    findHorizontalIntersections(s2,e.p);
-                else*/
-                    findNewEvent(s1, s2, e.p);
+                findNewEvent(s1, s2, e.p);
             }
         } else {
             LineSegment s1, s2;
@@ -109,24 +107,14 @@ public class IntersectionFinder {
             s2 = (LineSegment) BST.higher(s1);
 
             if(s1!=null&&s2!=null) {
-                /*if((Math.abs(s1.slope)<.0000001))
-                    findHorizontalIntersections(s1,e.p);
-                else if((Math.abs(s2.slope)<.0000001))
-                    findHorizontalIntersections(s2,e.p);
-                else*/
-                    findNewEvent(s1, s2, e.p);
+                findNewEvent(s1, s2, e.p);
 
             }
             s1 = UUC.get(0);
             s2 = (LineSegment) BST.lower(s1);
 
             if(s1!=null&&s2!=null){
-                /*if((Math.abs(s1.slope)<.0000001))
-                    findHorizontalIntersections(s1,e.p);
-                else if((Math.abs(s2.slope)<.0000001))
-                    findHorizontalIntersections(s2,e.p);
-                else */
-                    findNewEvent(s1, s2, e.p);
+                findNewEvent(s1, s2, e.p);
             }
         }
     }
@@ -146,6 +134,16 @@ public class IntersectionFinder {
             return;
         if (point.y > l.p1.y || point.y < l.p2.y || point.y > r.p1.y || point.y < r.p2.y)
             return;
+        if((point.equals(l.p1)||point.equals(r.p1))&&!intersections.contains(point)) {
+            if (!l.isIntersection(point))
+                l.intersections.add(point);
+            if (!r.isIntersection(point))
+                r.intersections.add(point);
+            if (!intersections.contains(point)) {
+                intersections.add(point);
+            }
+        }
+
         else if(point.y<p.y||(point.y==p.y&&point.x>p.x)){
             if(!l.isIntersection(point))
                 l.intersections.add(point);
@@ -223,8 +221,12 @@ public class IntersectionFinder {
         ArrayList<LineSegment> set = new ArrayList<>();
         set.addAll((Collection<? extends LineSegment>) (Collection<? extends SpacialObject>)BST.descendingSet());
         for (int i = 0; i < segments.size(); i++)
-            if (segments.get(i).isIntersection(p) || segments.get(i).isLower(p))
+            if (segments.get(i).isIntersection(p) || segments.get(i).isLower(p)) {
                 set.remove(segments.get(i));
+            if(segments.get(i).isLower(p)) {
+                end = segments.get(i);
+            }
+        }
         BST=new TreeSet<>();
         BST.addAll(set.subList(0,set.size()));
     }
@@ -236,6 +238,13 @@ public class IntersectionFinder {
             if (segments.get(i).isIntersection(p) || segments.get(i).isUpper(p)) {
                 BST.add(segments.get(i));
                 UUC.add(segments.get(i));
+
+                if(Math.abs(segments.get(i).antislope)<.0000001)
+                    if(!verticals.contains(segments.get(i)))
+                        verticals.add(segments.get(i));
+
+                checkVertical(segments.get(i),segments.get(i).p1);
+                checkEnd(segments.get(i),segments.get(i).p1);
             }
 
         /*set.addAll((Collection<? extends LineSegment>) (Collection<? extends SpacialObject>)BST.descendingSet());
@@ -244,21 +253,23 @@ public class IntersectionFinder {
             System.out.println("("+line.p1.x+", "+line.p1.y+")-("+line.p2.x+", "+line.p2.y+")");
         }
         System.out.println("");*/
-        System.out.println(BST.size());
+        //System.out.println(BST.size());
         UUC.sort(null);
         return UUC;
     }
 
-    /*public void findHorizontalIntersections(LineSegment s, Point p){
-        ArrayList <LineSegment> segments=new ArrayList<>();
-        segments.addAll((Collection<? extends LineSegment>) (Collection<? extends SpacialObject>)BST.headSet(BST.last(), true));
-        segments.sort(null);
-
-        for(int i=0;i<segments.size();i++){
-            if(!segments.get(i).equals(s))
-                findNewEvent(s,segments.get(i),p);
+    public void checkVertical(LineSegment s1, Point p){
+        for(int i=0;i<verticals.size();i++){
+            if(Math.abs(s1.p1.x-verticals.get(i).p1.x)<.0000001)
+                findNewEvent(s1,verticals.get(i),p);
         }
-    }*/
+    }
+
+    public void checkEnd(LineSegment s1, Point p){
+        if(s1!=null&&end!=null)
+            if(p.equals(end.p2))
+                findNewEvent(end,s1,p);
+    }
 
     public ArrayList getLines() {
         return lines;
